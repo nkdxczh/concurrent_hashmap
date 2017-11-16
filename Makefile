@@ -17,9 +17,9 @@ ODIR  = obj32
 tmp  := $(shell mkdir -p $(ODIR))
 
 # Basic compiler configuration and flags
-CXX      = g++
-CXXFLAGS = -MMD -ggdb -O3 -std=gnu++11 -m$(BITS)
-LDFLAGS	 = -m$(BITS) -lpthread -lrt
+CXX      = g++-6
+CXXFLAGS =  -g -lpthread -fgnu-tm
+LDFLAGS	 = -m$(BITS)
 
 # The basenames of the c++ files that this program uses
 CXXFILES = test
@@ -43,14 +43,14 @@ clean:
 	@rm -rf $(ODIR)
 
 # build an .o file from a .cc file
-$(ODIR)/%.o: %.cc
+$(ODIR)/%: %.cc
 	@echo [CXX] $< "-->" $@
-	@$(CXX) $(CXXFLAGS) -c -o $@ $<
+	@$(CXX) $(CXXFLAGS) -o $@ $<
 
 # Link rule for building the target from .o files
-$(TARGET): $(OFILES)
-	@echo [LD] $^ "-->" $@
-	@$(CXX) -o $@ $^ $(LDFLAGS)
+#$(TARGET): $(OFILES)
+#	@echo [LD] $^ "-->" $@
+#	@$(CXX) -o $@ $^
 
 # Remember that 'all' and 'clean' aren't real targets
 .PHONY: all clean

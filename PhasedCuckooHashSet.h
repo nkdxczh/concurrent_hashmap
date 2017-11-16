@@ -7,39 +7,42 @@
 #include <cstdlib>
 #include <time.h>
 #include <cstring>
+#include <chrono>
+#include <thread>
 
 using namespace std;
 
-#define N 10000
+#define N 1000
 #define LIMIT 10
-#define THRESHOLD 2
-#define PROBE_SIZE 4
-
-#define H1 16759
-#define H2 19841
+#define THRESHOLD 15
+#define PROBE_SIZE 16
 
 template <class T>
 class PhasedCuckooHashSet{
     public:
         T*** tables[2];
         int capacity;
+        bool isResize;
 
         int hash0(T x){
             int hashvalue = hash<T>{}(x);
-            return abs(hashvalue * 9623 % 16759 % capacity);
+            return abs(hashvalue * 1567 % 16759);
         }
 
         int hash1(T x){
             int hashvalue = hash<T>{}(x);
-            return abs(hashvalue * 8443 % 19841 % capacity);
+            return abs(hashvalue * 1913 % 19841);
         }
 
         void resizeTables(){
-            capacity *= 2;
+            //cout << "begin malloc new tables" << endl;
+            isResize = true;
 
             T*** tmp_tables[2];
             tmp_tables[0] = tables[0];
             tmp_tables[1] = tables[1];
+
+            capacity *= 2;
 
             tables[0] = (T***)malloc(sizeof(void*) * capacity);
             tables[1] = (T***)malloc(sizeof(void*) * capacity);
@@ -47,28 +50,28 @@ class PhasedCuckooHashSet{
             for(int i = 0; i < 2; ++i){
                 for(int j = 0; j < capacity; ++j){
                     tables[i][j] = (T**)malloc(sizeof(void*) * PROBE_SIZE);
-                    memset (tables[i][j],0,sizeof(void*) * PROBE_SIZE);
+                    //memset (tables[i][j],0,sizeof(void*) * PROBE_SIZE);
+                    for(int k = 0; k < PROBE_SIZE; ++k)tables[i][j][k] = NULL;
                 }
             }
 
+            //cout << "finish malloc new tables" << endl;
 
             for(int i = 0; i < 2; ++i){
                 for(int j = 0; j < capacity / 2; ++j){
                     for(int z = 0; z < PROBE_SIZE; ++z){
                         if(tmp_tables[i][j][z] != NULL){
-                            add(*tmp_tables[i][j][z]);
-                            //free(tmp_tables[i][j][z]);
+                            //cout << "move " << *tmp_tables[i][j][z] << endl;
+                            add(*tmp_tables[i][j][z], false);
                         }
                     }
-                    //free(tmp_tables[i][j]);
                 }
                 free(tmp_tables[i]);
             }
+            isResize = false;
         }
 
-        void resize(){
-            resizeTables();
-        }
+        virtual void resize(int oldCapacity, bool useLock) = 0;
 
         int setSize(T** s){
             if(s == NULL)return 0;
@@ -79,11 +82,14 @@ class PhasedCuckooHashSet{
         }
 
         bool setAdd(T** s, T x){
-            int length = setSize(s);
-            if(length >= PROBE_SIZE)return false;
-            s[length] = (T*)malloc(sizeof(T));
-            *s[length] = x;
-            return true;
+            for(int i = 0; i < PROBE_SIZE; ++i){
+                if(s[i] == NULL){
+                    s[i] = (T*) malloc(sizeof(T));
+                    *s[i] = x;
+                    return true;
+                }
+            }
+            return false;
         }
 
         bool setRemove(T** s, T x){
@@ -106,30 +112,49 @@ class PhasedCuckooHashSet{
             return false;
         }
 
-        bool relocate(int i, int hi){
+        bool relocate(int i, int hi, int oldCapacity, bool useLock = true){
+            //cout << "in relocate  " << i << hi << useLock << endl;
+
             int hj = 0;
             int j = 1 - i;
 
             for(int round = 0; round < LIMIT; ++round){
+                
                 T** iSet = tables[i][hi];
+
+                //resizing
+                if(iSet == NULL || iSet[0] == NULL)return true;
+
                 T y = *iSet[0];
+
+                if(useLock)acquire(y);
+            //std::this_thread::sleep_for (std::chrono::milliseconds(1));
+
+                if(useLock && oldCapacity != capacity){
+                    release(y);
+                    return true;
+                }
+
                 switch(i){
                     case 0:
-                        hj = hash1(y);
+                        hj = hash1(y) % capacity;
                         break;
                     case 1:
-                        hj = hash0(y);
+                        hj = hash0(y) % capacity;
                         break;
                 }
 
-                acquire(y);
-
                 T** jSet = tables[j][hj];
 
-                if(setRemove(iSet, y)){
+                if(jSet == NULL){
+                    if(useLock)release(y);
+                    return false;
+                }
+
+                if(!useLock){
+                    setRemove(iSet, y);
                     if(setSize(jSet) < THRESHOLD){
                         setAdd(jSet, y);
-                        release(y);
                         return true;
                     }
                     else if(setSize(jSet) < PROBE_SIZE){
@@ -137,20 +162,38 @@ class PhasedCuckooHashSet{
                         i = 1 - i;
                         hi = hj;
                         j = 1 - j;
-                        release(y);
                     }
                     else{
                         setAdd(iSet, y);
-                        release(y);
+                        return false;
+                    }
+                }
+
+                if(setRemove(iSet, y)){
+                    if(setSize(jSet) < THRESHOLD){
+                        setAdd(jSet, y);
+                        if(useLock)release(y);
+                        return true;
+                    }
+                    else if(setSize(jSet) < PROBE_SIZE){
+                        setAdd(jSet, y);
+                        i = 1 - i;
+                        hi = hj;
+                        j = 1 - j;
+                        if(useLock)release(y);
+                    }
+                    else{
+                        setAdd(iSet, y);
+                        if(useLock)release(y);
                         return false;
                     }
                 }
                 else if(setSize(iSet) >= THRESHOLD){
-                    release(y);
+                    if(useLock)release(y);
                     continue;
                 }
                 else{
-                    release(y);
+                    if(useLock)release(y);
                     return true;
                 }
             }
@@ -158,9 +201,9 @@ class PhasedCuckooHashSet{
             return false;
         }
 
-        void acquire(T x){};
+        virtual void acquire(T x) = 0;
 
-        void release(T x){};
+        virtual void release(T x) = 0;
 
     public:
         PhasedCuckooHashSet(){
@@ -175,26 +218,32 @@ class PhasedCuckooHashSet{
                     memset (tables[i][j],0,sizeof(void*) * PROBE_SIZE);
                 }
             }
+
+            isResize = false;
         }
 
         bool contains(T x){
-            if( setContains(tables[0][hash0(x)], x) )return true;
-            if( setContains(tables[1][hash1(x)], x) )return true;
+            if( setContains(tables[0][hash0(x) % capacity], x) )return true;
+            if( setContains(tables[1][hash1(x) % capacity], x) )return true;
             return false;
         }
 
-        bool add(T x){
-            acquire(x);
+        bool add(T x, bool useLock = true){
+            if(useLock)acquire(x);
+
+            //if(useLock)cout << "try add " << x << endl;
+            //else cout << "move " << x << endl;
+            //std::this_thread::sleep_for (std::chrono::milliseconds(1));
 
             if(contains(x)){
-                release(x);
+                if(useLock)release(x);
                 return false;
             }
 
             T *tmp = (T*)malloc(sizeof(T));
             *tmp = x;
 
-            int h0 = hash0(x), h1= hash1(x);
+            int h0 = hash0(x) % capacity, h1= hash1(x) % capacity;
             int i = -1, h = -1;
             bool mustResize = false;
 
@@ -203,12 +252,14 @@ class PhasedCuckooHashSet{
 
             if( setSize(set0) < THRESHOLD){
                 setAdd(set0, x);
-                release(x);
+                if(useLock)release(x);
+                //cout << "finish in 1 " << x <<endl;
                 return true;
             }
             else if( setSize(set1) < THRESHOLD){
                 setAdd(set1, x);
-                release(x);
+                if(useLock)release(x);
+                //cout << "finish in 2 " << x <<endl;
                 return true;
             }
             else if( setSize(set0) < PROBE_SIZE){
@@ -224,26 +275,31 @@ class PhasedCuckooHashSet{
             else{
                 mustResize = true;
             }
-            release(x);
+            int oldCapacity = capacity;
+            if(useLock)release(x);
 
             if(mustResize){
-                resize();
-                add(x);    
+                resize(oldCapacity, useLock);
+                return add(x, useLock);    
             }
-            else if(!relocate(i,h))
-                resize();
+            else if(!relocate(i,h,oldCapacity, useLock)){
+                //cout << "relocate    " << i << " " << h << endl;
+                resize(oldCapacity, useLock);
+            }
+
+            //cout << "finish add " << x << endl;
 
             return true;
         }
 
         bool remove(T x){
             acquire(x);
-            int h0 = hash0(x);
+            int h0 = hash0(x) % capacity;
             if(setRemove(tables[0][h0], x)){
                 release(x);
                 return true;
             }
-            int h1 = hash1(x);
+            int h1 = hash1(x) % capacity;
             if(setRemove(tables[1][h1], x)){
                 release(x);
                 return true;
