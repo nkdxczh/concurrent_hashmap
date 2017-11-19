@@ -255,10 +255,10 @@ class TransactionalPhasedCuckooHashSet{
                     resize(oldCapacity);
                     return add(x);    
                 }
-                else if(!relocate(i,h,oldCapacity)){
+                /*else if(!relocate(i,h,oldCapacity)){
                     //cout << "relocate    " << i << " " << h << endl;
                     resize(oldCapacity);
-                }
+                }*/
 
                 //cout << "finish add " << x << endl;
 
