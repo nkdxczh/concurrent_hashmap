@@ -54,18 +54,32 @@ int main(int argc, char *argv[]){
     int probe_size = 8;
     int TASKS = 1000;
 
-    if(argc == 4){
+    int expect = 1024;
+    struct timeval start;
+    struct timeval end;
+    int left;
+
+    std::thread* threads[thread_num];
+
+    if(argc == 6){
         thread_num = atoi(argv[1]);
         n = atoi(argv[2]);
         TASKS = atoi(argv[3]);
+        threshold = atoi(argv[4]);
+        probe_size = atoi(argv[5]);
+    }
+
+    records = (int**)malloc(sizeof(void*) * thread_num);
+    for(int i = 0; i < thread_num; ++i){
+        records[i] = (int*)malloc(sizeof(int) * 4);
+        memset(records[i], 0, sizeof(int) * 4);
     }
 
     srand(time(0));
     
     CuckooHashSet<int>* chs = new CuckooHashSet<int>(n, limit);
     chs->populate();
-    struct timeval start1;
-    gettimeofday(&start1, NULL);
+    gettimeofday(&start, NULL);
     for(int i = 0; i < TASKS; ++i){
         if(abs(rand() % 10) < 4){
             chs->remove(rand());
@@ -74,44 +88,32 @@ int main(int argc, char *argv[]){
             chs->add(rand());
         }
     }
-    struct timeval end1;
-    gettimeofday(&end1, NULL);
+    gettimeofday(&end, NULL);
 
     //cout << "-------------- CuckooHashSet -------------" << endl; 
-    //cout << "total time: " << (end1.tv_sec - start1.tv_sec) * 1000000 + ((int)end1.tv_usec - (int)start1.tv_usec) << endl;
+    //cout << "total time: " << (end.tv_sec - start.tv_sec) * 1000000 + ((int)end.tv_usec - (int)start.tv_usec) << endl;
     //cout << "size: " << chs->size() << endl;
-    cout << (end1.tv_sec - start1.tv_sec) * 1000000 + ((int)end1.tv_usec - (int)start1.tv_usec) << endl;
+    cout << (end.tv_sec - start.tv_sec) * 1000000 + ((int)end.tv_usec - (int)start.tv_usec) << endl;
 
     free(chs);
-
-    records = (int**)malloc(sizeof(void*) * thread_num);
-    for(int i = 0; i < thread_num; ++i){
-        records[i] = (int*)malloc(sizeof(int) * 4);
-        memset(records[i], 0, sizeof(int) * 4);
-    }
 
     StripedCuckooHashSet<int>* hs = new StripedCuckooHashSet<int>(n, limit, threshold, probe_size);
     hs->populate();
 
-    std::thread* threads[thread_num];
-
-    int left = TASKS;
+    left = TASKS;
     for(int i = 0; i < thread_num; ++i){
         if(i < thread_num - 1)threads[i] = new std::thread(do_work, i, hs, TASKS / thread_num);
         else threads[i] = new std::thread(do_work, i, hs, left);
         left -= (int)(TASKS / thread_num);
     }
 
-    struct timeval start;
     gettimeofday(&start, NULL);
 
     for(int i = 0; i < thread_num; ++i)
         threads[i]->join();
 
-    struct timeval end;
     gettimeofday(&end, NULL);
 
-    int expect = 1024;
     for(int i = 0; i < thread_num; ++i){
         expect = expect - records[i][0] + records[i][2];
     }
