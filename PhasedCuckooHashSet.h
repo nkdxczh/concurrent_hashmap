@@ -233,10 +233,6 @@ class PhasedCuckooHashSet{
         bool add(T x, bool useLock = true){
             if(useLock)acquire(x);
 
-            //if(useLock)cout << "try add " << x << endl;
-            //else cout << "move " << x << endl;
-            //std::this_thread::sleep_for (std::chrono::milliseconds(1));
-
             if(contains(x)){
                 if(useLock)release(x);
                 return false;
@@ -255,13 +251,11 @@ class PhasedCuckooHashSet{
             if( setSize(set0) < THRESHOLD){
                 setAdd(set0, x);
                 if(useLock)release(x);
-                //cout << "finish in 1 " << x <<endl;
                 return true;
             }
             else if( setSize(set1) < THRESHOLD){
                 setAdd(set1, x);
                 if(useLock)release(x);
-                //cout << "finish in 2 " << x <<endl;
                 return true;
             }
             else if( setSize(set0) < PROBE_SIZE){
@@ -285,11 +279,8 @@ class PhasedCuckooHashSet{
                 return add(x, useLock);    
             }
             else if(!relocate(i,h,oldCapacity, useLock)){
-                //cout << "relocate    " << i << " " << h << endl;
                 resize(oldCapacity, useLock);
             }
-
-            //cout << "finish add " << x << endl;
 
             return true;
         }
