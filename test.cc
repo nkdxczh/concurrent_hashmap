@@ -102,13 +102,13 @@ int main(int argc, char *argv[]){
 
     left = TASKS;
 
+    gettimeofday(&start, NULL);
     for(int i = 0; i < thread_num; ++i){
         if(i < thread_num - 1)threads[i] = new thread(do_work, i, hs, TASKS / thread_num);
         else threads[i] = new thread(do_work, i, hs, left);
         left -= (int)(TASKS / thread_num);
     }
 
-    gettimeofday(&start, NULL);
     for(int i = 0; i < thread_num; ++i)
         threads[i]->join();
 
@@ -136,6 +136,7 @@ int main(int argc, char *argv[]){
         memset(records[i], 0, sizeof(int) * 4);
     }
 
+    gettimeofday(&start, NULL);
     left = TASKS;
     for(int i = 0; i < thread_num; ++i){
         if(i < thread_num - 1)threads[i] = new thread(do_work1, i, ths, TASKS / thread_num);
@@ -143,7 +144,6 @@ int main(int argc, char *argv[]){
         left -= (int)(TASKS / thread_num);
     }
 
-    gettimeofday(&start, NULL);
     for(int i = 0; i < thread_num; ++i)
         threads[i]->join();
 
