@@ -34,13 +34,14 @@ class TransactionalPhasedCuckooHashSet{
             return abs(hashvalue * 1913 % 19841);
         }
 
-        void resizeTables(){
+        void resizeTables(int oldCapacity){
 
             T*** tmp_tables[2];
             tmp_tables[0] = tables[0];
             tmp_tables[1] = tables[1];
 
             __transaction_atomic{
+                if(oldCapacity != capacity)return;
 
                 capacity *= 2;
 
@@ -68,7 +69,7 @@ class TransactionalPhasedCuckooHashSet{
         }
 
         void resize(int oldCapacity){
-            resizeTables();
+            resizeTables(oldCapacity);
         }
 
         int setSize(T** s){
