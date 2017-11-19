@@ -15,7 +15,6 @@ using namespace std;
 int** records;
 
 void do_work(int id, StripedCuckooHashSet<int>* hs, int tasks){
-    //srand(time(NULL));
     for(int i = 0; i < tasks; ++i){
         if(abs(rand() % 10) < 4){
             if(hs->remove(rand()))records[id][0]++;
@@ -30,15 +29,12 @@ void do_work(int id, StripedCuckooHashSet<int>* hs, int tasks){
 }
 
 void do_work1(int id, TransactionalPhasedCuckooHashSet<int>* hs, int tasks){
-    //return;
-    //srand(time(NULL));
     for(int i = 0; i < tasks; ++i){
         if(abs(rand() % 10) < 4){
             if(hs->remove(rand()))records[id][0]++;
             else records[id][1]++;
         }
         else{
-            //cout << id << " add" << endl;
             if(hs->add(rand()))records[id][2]++;
             else records[id][3]++;
         }

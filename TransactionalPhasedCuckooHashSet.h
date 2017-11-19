@@ -54,7 +54,6 @@ class TransactionalPhasedCuckooHashSet{
                         for(int k = 0; k < PROBE_SIZE; ++k)tables[i][j][k] = NULL;
                     }
                 }
-            }
 
                 for(int i = 0; i < 2; ++i){
                     for(int j = 0; j < capacity / 2; ++j){
@@ -66,6 +65,7 @@ class TransactionalPhasedCuckooHashSet{
                     }
                     free(tmp_tables[i]);
                 }
+            }
         }
 
         void resize(int oldCapacity){
