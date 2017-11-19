@@ -35,14 +35,12 @@ class TransactionalPhasedCuckooHashSet{
         }
 
         void resizeTables(){
-            //cout << "begin malloc new tables" << endl;
-            isResize = true;
 
             T*** tmp_tables[2];
             tmp_tables[0] = tables[0];
             tmp_tables[1] = tables[1];
 
-            atomic_commit{
+            __transaction_atomic{
 
                 capacity *= 2;
 
@@ -55,19 +53,17 @@ class TransactionalPhasedCuckooHashSet{
                         for(int k = 0; k < PROBE_SIZE; ++k)tables[i][j][k] = NULL;
                     }
                 }
-            }
 
-            //cout << "finish malloc new tables" << endl;
-
-            for(int i = 0; i < 2; ++i){
-                for(int j = 0; j < capacity / 2; ++j){
-                    for(int z = 0; z < PROBE_SIZE; ++z){
-                        if(tmp_tables[i][j][z] != NULL){
-                            add(*tmp_tables[i][j][z]);
+                for(int i = 0; i < 2; ++i){
+                    for(int j = 0; j < capacity / 2; ++j){
+                        for(int z = 0; z < PROBE_SIZE; ++z){
+                            if(tmp_tables[i][j][z] != NULL){
+                                add(*tmp_tables[i][j][z]);
+                            }
                         }
                     }
+                    free(tmp_tables[i]);
                 }
-                free(tmp_tables[i]);
             }
         }
 
@@ -75,7 +71,7 @@ class TransactionalPhasedCuckooHashSet{
             resizeTables();
         }
 
-        int setSize(T** s) transaction_safe {
+        int setSize(T** s){
             if(s == NULL)return 0;
             int res = 0;
             for(int i = 0; i < PROBE_SIZE; ++i)
@@ -83,7 +79,7 @@ class TransactionalPhasedCuckooHashSet{
             return res;
         }
 
-        bool setAdd(T** s, T x) transaction_safe {
+        bool setAdd(T** s, T x){
             for(int i = 0; i < PROBE_SIZE; ++i){
                 if(s[i] == NULL){
                     s[i] = (T*) malloc(sizeof(T));
@@ -94,7 +90,7 @@ class TransactionalPhasedCuckooHashSet{
             return false;
         }
 
-        bool setRemove(T** s, T x) transaction_safe {
+        bool setRemove(T** s, T x){
             for(int i = 0; i < PROBE_SIZE; ++i){
                 if(s[i] != NULL && *s[i] == x){
                     free(s[i]);
@@ -106,7 +102,7 @@ class TransactionalPhasedCuckooHashSet{
             return false;
         }
 
-        bool setContains(T** s, T x) transaction_safe {
+        bool setContains(T** s, T x){
             if(s == NULL)return false;
             for(int i = 0; i < PROBE_SIZE; ++i){
                 if(s[i] != NULL && *s[i] == x)return true;
@@ -129,7 +125,8 @@ class TransactionalPhasedCuckooHashSet{
 
                 T y = *iSet[0];
 
-                atomic_commit{
+                __transaction_atomic{
+                    //atomic_commit{
 
                     if(oldCapacity != capacity){
                         return true;
@@ -173,158 +170,156 @@ class TransactionalPhasedCuckooHashSet{
                         return true;
                     }
                 }
-            }
-
-            return false;
-        }
-
-    public:
-        TransactionalPhasedCuckooHashSet(int n = 1000, int limit = 10, int threshold = 2, int probe_size = 4){
-            N = n;
-            LIMIT = limit;
-            THRESHOLD = threshold;
-            PROBE_SIZE = probe_size;
-
-            capacity = N;
-
-            tables[0] = (T***)malloc(sizeof(void*) * capacity);
-            tables[1] = (T***)malloc(sizeof(void*) * capacity);
-
-            for(int i = 0; i < 2; ++i){
-                for(int j = 0; j < capacity; ++j){
-                    tables[i][j] = (T**)malloc(sizeof(void*) * PROBE_SIZE);
-                    memset (tables[i][j],0,sizeof(void*) * PROBE_SIZE);
                 }
+
+                return false;
             }
 
-            isResize = false;
-        }
+            public:
+            TransactionalPhasedCuckooHashSet(int n = 1000, int limit = 10, int threshold = 2, int probe_size = 4){
+                N = n;
+                LIMIT = limit;
+                THRESHOLD = threshold;
+                PROBE_SIZE = probe_size;
 
-        bool contains(T x){
-            atomic_noexcept{
+                capacity = N;
+
+                tables[0] = (T***)malloc(sizeof(void*) * capacity);
+                tables[1] = (T***)malloc(sizeof(void*) * capacity);
+
+                for(int i = 0; i < 2; ++i){
+                    for(int j = 0; j < capacity; ++j){
+                        tables[i][j] = (T**)malloc(sizeof(void*) * PROBE_SIZE);
+                        memset (tables[i][j],0,sizeof(void*) * PROBE_SIZE);
+                    }
+                }
+
+                isResize = false;
+            }
+
+            bool contains(T x){
                 if( setContains(tables[0][hash0(x) % capacity], x) )return true;
                 if( setContains(tables[1][hash1(x) % capacity], x) )return true;
                 return false;
             }
-        }
 
-        bool add(T x){
+            bool add(T x){
 
-            //if(useLock)cout << "try add " << x << endl;
-            //else cout << "move " << x << endl;
-            //std::this_thread::sleep_for (std::chrono::milliseconds(1));
-            bool mustResize = false;
-            int oldCapacity = capacity;
-            int i = -1, h = -1;
+                //if(useLock)cout << "try add " << x << endl;
+                //else cout << "move " << x << endl;
+                //std::this_thread::sleep_for (std::chrono::milliseconds(1));
+                bool mustResize = false;
+                int oldCapacity = capacity;
+                int i = -1, h = -1;
 
-            atomic_commit{
+                __transaction_atomic{
 
-                if(contains(x)){
-                    return false;
+                    if(contains(x)){
+                        return false;
+                    }
+
+                    T *tmp = (T*)malloc(sizeof(T));
+                    *tmp = x;
+
+                    int h0 = hash0(x) % capacity, h1= hash1(x) % capacity;
+
+                    T** set0 = tables[0][h0];
+                    T** set1 = tables[1][h1];
+
+                    if( setSize(set0) < THRESHOLD){
+                        setAdd(set0, x);
+                        //cout << "finish in 1 " << x <<endl;
+                        return true;
+                    }
+                    else if( setSize(set1) < THRESHOLD){
+                        setAdd(set1, x);
+                        //cout << "finish in 2 " << x <<endl;
+                        return true;
+                    }
+                    else if( setSize(set0) < PROBE_SIZE){
+                        setAdd(set0, x);
+                        i = 0;
+                        h = h0;
+                    }
+                    else if( setSize(set1) < PROBE_SIZE){
+                        setAdd(set1, x);
+                        i = 1;
+                        h = h1;
+                    }
+                    else{
+                        mustResize = true;
+                    }
                 }
 
-                T *tmp = (T*)malloc(sizeof(T));
-                *tmp = x;
+                if(mustResize){
+                    resize(oldCapacity);
+                    return add(x);    
+                }
+                else if(!relocate(i,h,oldCapacity)){
+                    //cout << "relocate    " << i << " " << h << endl;
+                    resize(oldCapacity);
+                }
 
-                int h0 = hash0(x) % capacity, h1= hash1(x) % capacity;
+                //cout << "finish add " << x << endl;
 
-                T** set0 = tables[0][h0];
-                T** set1 = tables[1][h1];
-
-                if( setSize(set0) < THRESHOLD){
-                    setAdd(set0, x);
-                    //cout << "finish in 1 " << x <<endl;
-                    return true;
-                }
-                else if( setSize(set1) < THRESHOLD){
-                    setAdd(set1, x);
-                    //cout << "finish in 2 " << x <<endl;
-                    return true;
-                }
-                else if( setSize(set0) < PROBE_SIZE){
-                    setAdd(set0, x);
-                    i = 0;
-                    h = h0;
-                }
-                else if( setSize(set1) < PROBE_SIZE){
-                    setAdd(set1, x);
-                    i = 1;
-                    h = h1;
-                }
-                else{
-                    mustResize = true;
-                }
+                return true;
             }
 
-            if(mustResize){
-                resize(oldCapacity);
-                return add(x);    
-            }
-            else if(!relocate(i,h,oldCapacity)){
-                //cout << "relocate    " << i << " " << h << endl;
-                resize(oldCapacity);
-            }
-
-            //cout << "finish add " << x << endl;
-
-            return true;
-        }
-
-        bool remove(T x){
-            atomic_commit{
-                int h0 = hash0(x) % capacity;
-                if(setRemove(tables[0][h0], x)){
-                    return true;
-                }
-                int h1 = hash1(x) % capacity;
-                if(setRemove(tables[1][h1], x)){
-                    return true;
+            bool remove(T x){
+                __transaction_atomic{
+                    int h0 = hash0(x) % capacity;
+                    if(setRemove(tables[0][h0], x)){
+                        return true;
+                    }
+                    int h1 = hash1(x) % capacity;
+                    if(setRemove(tables[1][h1], x)){
+                        return true;
+                    }
                 }
                 return false;
             }
-        }
 
-        int size(){
-            int res = 0;
+            int size(){
+                int res = 0;
 
-            for(int i = 0; i < capacity; ++i){
-                res += setSize(tables[0][i]);
-                res += setSize(tables[1][i]);
+                for(int i = 0; i < capacity; ++i){
+                    res += setSize(tables[0][i]);
+                    res += setSize(tables[1][i]);
+                }
+
+                return res;
             }
 
-            return res;
-        }
+            void populate(){
+                int count = 0;
 
-        void populate(){
-            int count = 0;
-
-            srand(time(NULL));
-            while(count < 1024){
-                if(add(rand())){
-                    count++;
+                srand(time(NULL));
+                while(count < 1024){
+                    if(add(rand())){
+                        count++;
+                    }
                 }
             }
-        }
 
-        void print(){
-            for(int  i = 0; i < 2; ++i){
-                for(int  j = 0; j < capacity; ++j){
-                    if(tables[i][j] != NULL){
-                        for(int z = 0; z < PROBE_SIZE; ++z){
-                            if(tables[i][j][z] != NULL)cout << *tables[i][j][z] << ",";
-                            else cout << "NULL,";
+            void print(){
+                for(int  i = 0; i < 2; ++i){
+                    for(int  j = 0; j < capacity; ++j){
+                        if(tables[i][j] != NULL){
+                            for(int z = 0; z < PROBE_SIZE; ++z){
+                                if(tables[i][j][z] != NULL)cout << *tables[i][j][z] << ",";
+                                else cout << "NULL,";
+                            }
                         }
-                    }
-                    else{
-                        for(int z = 0; z < PROBE_SIZE; ++z){
-                            cout << "NULL,";
+                        else{
+                            for(int z = 0; z < PROBE_SIZE; ++z){
+                                cout << "NULL,";
+                            }
                         }
+                        cout << endl;
                     }
                     cout << endl;
                 }
-                cout << endl;
             }
-        }
-};
+        };
 
 #endif
