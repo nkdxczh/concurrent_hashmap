@@ -18,16 +18,15 @@ class CuckooHashSet{
     private:
     int hash0(T x){
         int hashvalue = hash<T>{}(x);
-        return abs(hashvalue * 1567 % 16759) % capacity;
+        return abs((hashvalue * 1567) % 16759) % capacity;
     }
 
     int hash1(T x){
         int hashvalue = hash<T>{}(x);
-        return abs(hashvalue * 1913 % 19841) % capacity;
+        return abs((hashvalue * 1913) % 19841) % capacity;
     }
 
     void resize(){
-        cout << "c resize" << endl;
         capacity *= 2;
 
         T** tmp_tables[2];

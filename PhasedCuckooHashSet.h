@@ -27,12 +27,12 @@ class PhasedCuckooHashSet{
 
         int hash0(T x){
             int hashvalue = hash<T>{}(x);
-            return abs(hashvalue * 1567 % 16759);
+            return abs((hashvalue * 1567) % 16759);
         }
 
         int hash1(T x){
             int hashvalue = hash<T>{}(x);
-            return abs(hashvalue * 1913 % 19841);
+            return abs((hashvalue * 1913) % 19841);
         }
 
         void resizeTables(){
@@ -58,7 +58,6 @@ class PhasedCuckooHashSet{
                 for(int j = 0; j < capacity / 2; ++j){
                     for(int z = 0; z < PROBE_SIZE; ++z){
                         if(tmp_tables[i][j][z] != NULL){
-                            //cout << "move " << *tmp_tables[i][j][z] << endl;
                             add(*tmp_tables[i][j][z], false);
                         }
                     }
@@ -110,7 +109,6 @@ class PhasedCuckooHashSet{
         }
 
         bool relocate(int i, int hi, int oldCapacity, bool useLock = true){
-            //cout << "in relocate  " << i << hi << useLock << endl;
 
             int hj = 0;
             int j = 1 - i;

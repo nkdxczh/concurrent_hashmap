@@ -60,7 +60,6 @@ class StripedCuckooHashSet : public PhasedCuckooHashSet<T> {
                     return;
                 }
             }
-            cout << "s resize" << endl;
 
             //this->resizeLocks();
 

@@ -25,16 +25,14 @@ class TransactionalPhasedCuckooHashSet{
         int THRESHOLD;
         int PROBE_SIZE;
 
-        mutex* resizeLock;
-
         int hash0(T x) transaction_safe {
             int hashvalue = hash<T>{}(x);
-            return abs(hashvalue * 1567 % 16759);
+            return abs((hashvalue * 1567) % 16759);
         }
 
         int hash1(T x) transaction_safe {
             int hashvalue = hash<T>{}(x);
-            return abs(hashvalue * 1913 % 19841);
+            return abs((hashvalue * 1913) % 19841);
         }
 
         void resizeTables(int oldCapacity){
@@ -43,11 +41,9 @@ class TransactionalPhasedCuckooHashSet{
             tmp_tables[0] = tables[0];
             tmp_tables[1] = tables[1];
 
-            resizeLock->lock();
 
             __transaction_atomic{
                 if(oldCapacity != capacity){
-                    resizeLock->unlock();
                     return;
                 }
 
@@ -63,10 +59,9 @@ class TransactionalPhasedCuckooHashSet{
                     }
                 }
             }
-            cout << "t finishresize " << oldCapacity << " " << capacity << endl;
 
             for(int i = 0; i < 2; ++i){
-                for(int j = 0; j < capacity / 2; ++j){
+                for(int j = 0; j < oldCapacity; ++j){
                     for(int z = 0; z < PROBE_SIZE; ++z){
                         if(tmp_tables[i][j][z] != NULL){
                             add(*tmp_tables[i][j][z]);
@@ -75,14 +70,10 @@ class TransactionalPhasedCuckooHashSet{
                 }
                 free(tmp_tables[i]);
             }
-            cout << "t move " << oldCapacity << " " << capacity << endl;
-            resizeLock->unlock();
         }
 
-        void resize(int oldCapacity){
-            cout << "t begin resize " << oldCapacity << " " << capacity << endl;
+        void resize(int oldCapacity, bool useLock = true){
             resizeTables(oldCapacity);
-            cout << "t finish resize " << oldCapacity << " " << capacity << endl;
         }
 
         int setSize(T** s){
@@ -194,8 +185,6 @@ class TransactionalPhasedCuckooHashSet{
 
             capacity = N;
 
-            resizeLock = new mutex();
-
             tables[0] = (T***)malloc(sizeof(void*) * capacity);
             tables[1] = (T***)malloc(sizeof(void*) * capacity);
 
@@ -205,8 +194,6 @@ class TransactionalPhasedCuckooHashSet{
                     memset (tables[i][j],0,sizeof(void*) * PROBE_SIZE);
                 }
             }
-
-            isResize = false;
         }
 
         bool contains(T x){
@@ -237,12 +224,10 @@ class TransactionalPhasedCuckooHashSet{
 
                 if( setSize(set0) < THRESHOLD){
                     setAdd(set0, x);
-                    //cout << "finish in 1 " << x <<endl;
                     return true;
                 }
                 else if( setSize(set1) < THRESHOLD){
                     setAdd(set1, x);
-                    //cout << "finish in 2 " << x <<endl;
                     return true;
                 }
                 else if( setSize(set0) < PROBE_SIZE){
@@ -305,7 +290,7 @@ class TransactionalPhasedCuckooHashSet{
 
             if(mustResize){
                 resize(oldCapacity);
-                return add(x);    
+                return add1(x);    
             }
 
             return true;

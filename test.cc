@@ -114,10 +114,10 @@ int main(int argc, char *argv[]){
     }
 
 
-    cout << "-------------- StripedCuckooHashSet -------------" << endl; 
+    //cout << "-------------- StripedCuckooHashSet -------------" << endl; 
     //cout << "total time: " << (end.tv_sec - start.tv_sec) * 1000000 + ((int)end.tv_usec - (int)start.tv_usec) << endl;
-    cout << "expect size: " << expect << endl;
-    cout << "size: " << hs->size() << endl;
+    //cout << "expect size: " << expect << endl;
+    //cout << "size: " << hs->size() << endl;
     cout << (end.tv_sec - start.tv_sec) * 1000000 + ((int)end.tv_usec - (int)start.tv_usec) << endl;
 
     free(hs);
@@ -142,17 +142,17 @@ int main(int argc, char *argv[]){
     for(int i = 0; i < thread_num; ++i)
         threads[i]->join();
 
-    expect = 1024;
+    gettimeofday(&end, NULL);
+
+    expect = 0;
     for(int i = 0; i < thread_num; ++i){
         expect = expect - records[i][0] + records[i][2];
     }
 
-    gettimeofday(&end, NULL);
-
-    cout << "-------------- TransactionalCuckooHashSet -------------" << endl; 
+    //cout << "-------------- TransactionalCuckooHashSet -------------" << endl; 
     //cout << "total time: " << (end.tv_sec - start.tv_sec) * 1000000 + ((int)end.tv_usec - (int)start.tv_usec) << endl;
-    cout << "expect size: " << expect << endl;
-    cout << "size: " << ths->size() << endl;
+    //cout << "expect size: " << expect << endl;
+    //cout << "size: " << ths->size() << endl;
     cout << (end.tv_sec - start.tv_sec) * 1000000 + ((int)end.tv_usec - (int)start.tv_usec) << endl;
 
     free(ths);
