@@ -12,10 +12,6 @@
 
 using namespace std;
 
-#define N 1000
-#define LIMIT 10
-#define THRESHOLD 15
-#define PROBE_SIZE 16
 
 template <class T>
 class PhasedCuckooHashSet{
@@ -23,6 +19,11 @@ class PhasedCuckooHashSet{
         T*** tables[2];
         int capacity;
         bool isResize;
+
+        int N;
+        int LIMIT;
+        int THRESHOLD;
+        int PROBE_SIZE;
 
         int hash0(T x){
             int hashvalue = hash<T>{}(x);
@@ -35,7 +36,6 @@ class PhasedCuckooHashSet{
         }
 
         void resizeTables(){
-            //cout << "begin malloc new tables" << endl;
             isResize = true;
 
             T*** tmp_tables[2];
@@ -50,12 +50,9 @@ class PhasedCuckooHashSet{
             for(int i = 0; i < 2; ++i){
                 for(int j = 0; j < capacity; ++j){
                     tables[i][j] = (T**)malloc(sizeof(void*) * PROBE_SIZE);
-                    //memset (tables[i][j],0,sizeof(void*) * PROBE_SIZE);
                     for(int k = 0; k < PROBE_SIZE; ++k)tables[i][j][k] = NULL;
                 }
             }
-
-            //cout << "finish malloc new tables" << endl;
 
             for(int i = 0; i < 2; ++i){
                 for(int j = 0; j < capacity / 2; ++j){
@@ -206,7 +203,12 @@ class PhasedCuckooHashSet{
         virtual void release(T x) = 0;
 
     public:
-        PhasedCuckooHashSet(){
+        PhasedCuckooHashSet(int n = 1000, int limit = 10, int threshold = 2, int probe_size = 4){
+            N = n;
+            LIMIT = limit;
+            THRESHOLD = threshold;
+            PROBE_SIZE = probe_size;
+
             capacity = N;
 
             tables[0] = (T***)malloc(sizeof(void*) * capacity);

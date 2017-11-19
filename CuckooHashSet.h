@@ -6,14 +6,14 @@
 
 using namespace std;
 
-#define N 1000
-#define LIMIT 10
-
 template <class T>
 class CuckooHashSet{
     T** tables[2];
     int length;
     int capacity;
+
+    int N;
+    int LIMIT;
 
     private:
     int hash0(T x){
@@ -53,7 +53,10 @@ class CuckooHashSet{
     }
 
     public:
-    CuckooHashSet(){
+    CuckooHashSet(int n, int limit){
+        N = n;
+        LIMIT = limit;
+
         length = 0;
         capacity = N;
         

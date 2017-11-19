@@ -86,8 +86,8 @@ class StripedCuckooHashSet : public PhasedCuckooHashSet<T> {
         }
 
     public:
-        StripedCuckooHashSet() : PhasedCuckooHashSet<T>(){
-            lockNum = N;
+        StripedCuckooHashSet(int n = 1000, int limit = 10, int threshold = 2, int probe_size = 4) : PhasedCuckooHashSet<T>(n, limit, threshold, probe_size){
+            lockNum = n;
             locks = (mutex***)malloc(sizeof(void*) * 2);
 
             for(int i = 0; i < 2; ++i){

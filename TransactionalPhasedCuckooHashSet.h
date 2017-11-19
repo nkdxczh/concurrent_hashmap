@@ -12,20 +12,17 @@
 
 using namespace std;
 
-#define N 1000
-#define LIMIT 10
-#define THRESHOLD 15
-#define PROBE_SIZE 16
-
-#define H1 16759
-#define H2 19841
-
 template <class T>
 class TransactionalPhasedCuckooHashSet{
-    public:
+    private:
         T*** tables[2];
         int capacity;
         bool isResize;
+
+        int N;
+        int LIMIT;
+        int THRESHOLD;
+        int PROBE_SIZE;
 
         int hash0(T x) transaction_safe {
             int hashvalue = hash<T>{}(x);
@@ -97,7 +94,7 @@ class TransactionalPhasedCuckooHashSet{
             return false;
         }
 
-        bool setRemove(T** s, T x){
+        bool setRemove(T** s, T x) transaction_safe {
             for(int i = 0; i < PROBE_SIZE; ++i){
                 if(s[i] != NULL && *s[i] == x){
                     free(s[i]);
@@ -109,7 +106,7 @@ class TransactionalPhasedCuckooHashSet{
             return false;
         }
 
-        bool setContains(T** s, T x){
+        bool setContains(T** s, T x) transaction_safe {
             if(s == NULL)return false;
             for(int i = 0; i < PROBE_SIZE; ++i){
                 if(s[i] != NULL && *s[i] == x)return true;
@@ -182,7 +179,12 @@ class TransactionalPhasedCuckooHashSet{
         }
 
     public:
-        TransactionalPhasedCuckooHashSet(){
+        TransactionalPhasedCuckooHashSet(int n = 1000, int limit = 10, int threshold = 2, int probe_size = 4){
+            N = n;
+            LIMIT = limit;
+            THRESHOLD = threshold;
+            PROBE_SIZE = probe_size;
+
             capacity = N;
 
             tables[0] = (T***)malloc(sizeof(void*) * capacity);
