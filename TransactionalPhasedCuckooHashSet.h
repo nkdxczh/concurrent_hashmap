@@ -53,6 +53,7 @@ class TransactionalPhasedCuckooHashSet{
                         for(int k = 0; k < PROBE_SIZE; ++k)tables[i][j][k] = NULL;
                     }
                 }
+            }
 
                 for(int i = 0; i < 2; ++i){
                     for(int j = 0; j < capacity / 2; ++j){
@@ -64,7 +65,6 @@ class TransactionalPhasedCuckooHashSet{
                     }
                     free(tmp_tables[i]);
                 }
-            }
         }
 
         void resize(int oldCapacity){
@@ -111,7 +111,6 @@ class TransactionalPhasedCuckooHashSet{
         }
 
         bool relocate(int i, int hi, int oldCapacity){
-            //cout << "in relocate  " << i << hi << useLock << endl;
 
             int hj = 0;
             int j = 1 - i;
@@ -120,13 +119,11 @@ class TransactionalPhasedCuckooHashSet{
 
                 T** iSet = tables[i][hi];
 
-                //resizing
                 if(iSet == NULL || iSet[0] == NULL)return true;
 
                 T y = *iSet[0];
 
                 __transaction_atomic{
-                    //atomic_commit{
 
                     if(oldCapacity != capacity){
                         return true;
@@ -204,10 +201,6 @@ class TransactionalPhasedCuckooHashSet{
             }
 
             bool add(T x){
-
-                //if(useLock)cout << "try add " << x << endl;
-                //else cout << "move " << x << endl;
-                //std::this_thread::sleep_for (std::chrono::milliseconds(1));
                 bool mustResize = false;
                 int oldCapacity = capacity;
                 int i = -1, h = -1;
@@ -255,12 +248,9 @@ class TransactionalPhasedCuckooHashSet{
                     resize(oldCapacity);
                     return add(x);    
                 }
-                /*else if(!relocate(i,h,oldCapacity)){
-                    //cout << "relocate    " << i << " " << h << endl;
+                else if(!relocate(i,h,oldCapacity)){
                     resize(oldCapacity);
-                }*/
-
-                //cout << "finish add " << x << endl;
+                }
 
                 return true;
             }
