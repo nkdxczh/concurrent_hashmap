@@ -21,7 +21,6 @@ void do_work(int id, StripedCuckooHashSet<int>* hs, int tasks){
             else records[id][1]++;
         }
         else{
-            //cout << id << " add" << endl;
             if(hs->add(rand()))records[id][2]++;
             else records[id][3]++;
         }
@@ -74,7 +73,7 @@ int main(int argc, char *argv[]){
     srand(time(0));
     
     CuckooHashSet<int>* chs = new CuckooHashSet<int>(n, limit);
-    chs->populate();
+    //chs->populate();
     gettimeofday(&start, NULL);
     for(int i = 0; i < TASKS; ++i){
         if(abs(rand() % 10) < 4){
@@ -94,13 +93,13 @@ int main(int argc, char *argv[]){
     free(chs);
 
     StripedCuckooHashSet<int>* hs = new StripedCuckooHashSet<int>(n, limit, threshold, probe_size);
-    hs->populate();
+    //hs->populate();
 
     left = TASKS;
 
     gettimeofday(&start, NULL);
     for(int i = 0; i < thread_num; ++i){
-        if(i < thread_num - 1)threads[i] = new thread(do_work, i, hs, TASKS / thread_num);
+        if(i < thread_num - 1)threads[i] = new thread(do_work, i, hs, (int)(TASKS / thread_num));
         else threads[i] = new thread(do_work, i, hs, left);
         left -= (int)(TASKS / thread_num);
     }
@@ -115,7 +114,7 @@ int main(int argc, char *argv[]){
     }
 
 
-    //cout << "-------------- StripedCuckooHashSet -------------" << endl; 
+    cout << "-------------- StripedCuckooHashSet -------------" << endl; 
     //cout << "total time: " << (end.tv_sec - start.tv_sec) * 1000000 + ((int)end.tv_usec - (int)start.tv_usec) << endl;
     cout << "expect size: " << expect << endl;
     cout << "size: " << hs->size() << endl;
@@ -124,7 +123,7 @@ int main(int argc, char *argv[]){
     free(hs);
 
     TransactionalPhasedCuckooHashSet<int>* ths = new TransactionalPhasedCuckooHashSet<int>(n, limit, threshold, probe_size);
-    ths->populate();
+    //ths->populate();
 
     records = (int**)malloc(sizeof(void*) * thread_num);
     for(int i = 0; i < thread_num; ++i){
@@ -143,15 +142,14 @@ int main(int argc, char *argv[]){
     for(int i = 0; i < thread_num; ++i)
         threads[i]->join();
 
-    gettimeofday(&end, NULL);
-
     expect = 1024;
     for(int i = 0; i < thread_num; ++i){
         expect = expect - records[i][0] + records[i][2];
     }
 
+    gettimeofday(&end, NULL);
 
-    //cout << "-------------- TransactionalCuckooHashSet -------------" << endl; 
+    cout << "-------------- TransactionalCuckooHashSet -------------" << endl; 
     //cout << "total time: " << (end.tv_sec - start.tv_sec) * 1000000 + ((int)end.tv_usec - (int)start.tv_usec) << endl;
     cout << "expect size: " << expect << endl;
     cout << "size: " << ths->size() << endl;

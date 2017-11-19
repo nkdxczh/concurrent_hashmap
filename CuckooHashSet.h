@@ -27,6 +27,7 @@ class CuckooHashSet{
     }
 
     void resize(){
+        cout << "c resize" << endl;
         capacity *= 2;
 
         T** tmp_tables[2];
