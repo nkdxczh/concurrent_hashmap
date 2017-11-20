@@ -15,6 +15,7 @@ using namespace std;
 int** records;
 
 void do_work(int id, StripedCuckooHashSet<int>* hs, int tasks){
+    //cout << tasks << endl;
     for(int i = 0; i < tasks; ++i){
         if(abs(rand() % 10) < 4){
             if(hs->remove(rand()))records[id][0]++;
@@ -28,6 +29,7 @@ void do_work(int id, StripedCuckooHashSet<int>* hs, int tasks){
 }
 
 void do_work1(int id, TransactionalPhasedCuckooHashSet<int>* hs, int tasks){
+    //cout << tasks << endl;
     for(int i = 0; i < tasks; ++i){
         if(abs(rand() % 10) < 4){
             if(hs->remove(rand()))records[id][0]++;
@@ -97,12 +99,13 @@ int main(int argc, char *argv[]){
 
     left = TASKS;
 
-    gettimeofday(&start, NULL);
     for(int i = 0; i < thread_num; ++i){
         if(i < thread_num - 1)threads[i] = new thread(do_work, i, hs, (int)(TASKS / thread_num));
         else threads[i] = new thread(do_work, i, hs, left);
         left -= (int)(TASKS / thread_num);
     }
+
+    gettimeofday(&start, NULL);
 
     for(int i = 0; i < thread_num; ++i)
         threads[i]->join();
@@ -131,13 +134,14 @@ int main(int argc, char *argv[]){
         memset(records[i], 0, sizeof(int) * 4);
     }
 
-    gettimeofday(&start, NULL);
     left = TASKS;
     for(int i = 0; i < thread_num; ++i){
         if(i < thread_num - 1)threads[i] = new thread(do_work1, i, ths, TASKS / thread_num);
         else threads[i] = new thread(do_work1, i, ths, left);
         left -= (int)(TASKS / thread_num);
     }
+
+    gettimeofday(&start, NULL);
 
     for(int i = 0; i < thread_num; ++i)
         threads[i]->join();

@@ -19,7 +19,7 @@ class StripedCuckooHashSet : public PhasedCuckooHashSet<T> {
 
                 if(lock1->try_lock())break;
                 else lock0->unlock();
-                std::this_thread::yield();
+                //std::this_thread::yield();
             }
 
         }
@@ -51,7 +51,8 @@ class StripedCuckooHashSet : public PhasedCuckooHashSet<T> {
 
             if(useLock){
                 for(int i = 0; i < lockNum; ++i){
-                    while(!locks[0][i]->try_lock())std::this_thread::yield();
+                    //while(!locks[0][i]->try_lock())std::this_thread::yield();
+                    locks[0][i]->lock();
                 }
                 if(oldCapacity != this->capacity){
                     for(int i = 0; i < lockNum; ++i){
