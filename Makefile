@@ -17,7 +17,7 @@ ODIR  = obj32
 tmp  := $(shell mkdir -p $(ODIR))
 
 # Basic compiler configuration and flags
-CXX      = g++-6
+CXX      = g++
 CXXFLAGS = -lpthread -fgnu-tm
 LDFLAGS	 = -m$(BITS)
 

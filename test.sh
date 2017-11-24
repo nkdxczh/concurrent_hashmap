@@ -1,7 +1,7 @@
-for i in 4 16 64 128 256 500
+for i in 4 8 16 32 64
 do
     for j in {1..10}
     do
-        ./obj32/test $i 100 20000 18 20
+        ./obj32/test 8 50 16000 $i-2 $i
     done
 done

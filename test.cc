@@ -51,7 +51,7 @@ int main(int argc, char *argv[]){
     int probe_size = 8;
     int TASKS = 1000;
 
-    int expect = 1024;
+    int expect = 0;
     struct timeval start;
     struct timeval end;
     int left;
@@ -87,10 +87,10 @@ int main(int argc, char *argv[]){
     }
     gettimeofday(&end, NULL);
 
-    //cout << "-------------- CuckooHashSet -------------" << endl; 
-    //cout << "total time: " << (end.tv_sec - start.tv_sec) * 1000000 + ((int)end.tv_usec - (int)start.tv_usec) << endl;
-    //cout << "size: " << chs->size() << endl;
-    cout << (end.tv_sec - start.tv_sec) * 1000000 + ((int)end.tv_usec - (int)start.tv_usec) << endl;
+    cout << "-------------- CuckooHashSet -------------" << endl; 
+    cout << "total time: " << (end.tv_sec - start.tv_sec) * 1000000 + ((int)end.tv_usec - (int)start.tv_usec) << endl;
+    cout << "size: " << chs->size() << endl;
+    //cout << (end.tv_sec - start.tv_sec) * 1000000 + ((int)end.tv_usec - (int)start.tv_usec) << endl;
 
     free(chs);
 
@@ -117,11 +117,11 @@ int main(int argc, char *argv[]){
     }
 
 
-    //cout << "-------------- StripedCuckooHashSet -------------" << endl; 
-    //cout << "total time: " << (end.tv_sec - start.tv_sec) * 1000000 + ((int)end.tv_usec - (int)start.tv_usec) << endl;
-    //cout << "expect size: " << expect << endl;
-    //cout << "size: " << hs->size() << endl;
-    cout << (end.tv_sec - start.tv_sec) * 1000000 + ((int)end.tv_usec - (int)start.tv_usec) << endl;
+    cout << "-------------- StripedCuckooHashSet -------------" << endl; 
+    cout << "total time: " << (end.tv_sec - start.tv_sec) * 1000000 + ((int)end.tv_usec - (int)start.tv_usec) << endl;
+    cout << "expect size: " << expect << endl;
+    cout << "size: " << hs->size() << endl;
+    //cout << (end.tv_sec - start.tv_sec) * 1000000 + ((int)end.tv_usec - (int)start.tv_usec) << endl;
 
     free(hs);
 
@@ -153,11 +153,11 @@ int main(int argc, char *argv[]){
         expect = expect - records[i][0] + records[i][2];
     }
 
-    //cout << "-------------- TransactionalCuckooHashSet -------------" << endl; 
-    //cout << "total time: " << (end.tv_sec - start.tv_sec) * 1000000 + ((int)end.tv_usec - (int)start.tv_usec) << endl;
-    //cout << "expect size: " << expect << endl;
-    //cout << "size: " << ths->size() << endl;
-    cout << (end.tv_sec - start.tv_sec) * 1000000 + ((int)end.tv_usec - (int)start.tv_usec) << endl;
+    cout << "-------------- TransactionalCuckooHashSet -------------" << endl; 
+    cout << "total time: " << (end.tv_sec - start.tv_sec) * 1000000 + ((int)end.tv_usec - (int)start.tv_usec) << endl;
+    cout << "expect size: " << expect << endl;
+    cout << "size: " << ths->size() << endl;
+    //cout << (end.tv_sec - start.tv_sec) * 1000000 + ((int)end.tv_usec - (int)start.tv_usec) << endl;
 
     free(ths);
 
